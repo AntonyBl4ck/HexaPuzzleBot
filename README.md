@@ -31,6 +31,8 @@ Launch the game on your WSA or Android emulator.
 Navigate to the bot’s project folder and run the script:
 
 python HexaBot.py
+
+
 Use hotkeys like Ctrl+A to start automation and Ctrl+S to stop.
 
 The bot detects colored coins using OpenCV and moves them using PyAutoGUI.
