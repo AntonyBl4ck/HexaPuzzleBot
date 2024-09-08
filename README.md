@@ -9,8 +9,8 @@ Installation Guide
 Prerequisites:
 Ensure that Python 3.x is installed.
 Install pip, the Python package manager.
-Installation:
-Clone this repository or download the project files:
+
+
 
 
 pip install opencv-python numpy pyautogui keyboard easyocr
