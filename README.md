@@ -13,25 +13,25 @@ Install pip, the Python package manager.
 
 
 
+Here's a step-by-step guide for setting up the Python bot and Windows Subsystem for Android (WSA) to run your HexaPuzzleBot from GitHub:
+
+1. Install Python
+Download and install Python 3.x from [python.org](https://www.python.org/downloads/).
+During installation, ensure the Add Python to PATH option is checked.
+2. Install Required Python Libraries
+Open a terminal (Command Prompt or PowerShell).
+Install the necessary packages:
 pip install opencv-python numpy pyautogui keyboard easyocr
-Verify the installation of the following packages:
+3. Set Up Windows Subsystem for Android (WSA)
+Open Microsoft Store and search for "Windows Subsystem for Android™".
+Install the WSA package and enable developer mode in WSA settings.
+Download the Telegram APK.
+4. Run the Bot
+Launch the game on your WSA or Android emulator.
+Navigate to the bot’s project folder and run the script:
 
-opencv-python
-numpy
-pyautogui
-keyboard
-easyocr
-
-Running the Script
-Launch the Hamster Kombat Hexa Puzzle game on your computer.
-
-Open a terminal and navigate to the project folder.
-
-The bot will begin analyzing the game window. Use the following hotkeys to control the bot:
-
-Ctrl + A: Start moving coins.
-Ctrl + S: Stop the bot from moving coins.
-Make sure the game window is visible and positioned correctly on your screen for the bot to detect game elements accurately.
+python HexaBot.py
+Use hotkeys like Ctrl+A to start automation and Ctrl+S to stop.
 
 The bot detects colored coins using OpenCV and moves them using PyAutoGUI.
 Use EasyOCR to detect game text like "Claim" and "Play" for automated interaction.
