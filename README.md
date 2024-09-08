@@ -28,9 +28,7 @@ Install the WSA package and enable developer mode in WSA settings.
 Download the Telegram APK.
 4. Run the Bot
 Launch the game on your WSA or Android emulator.
-Navigate to the bot’s project folder and run the script:
-
-python HexaBot.py
+Navigate to the bot’s project folder and run the script:python HexaBot.py
 
 
 Use hotkeys like Ctrl+A to start automation and Ctrl+S to stop.
