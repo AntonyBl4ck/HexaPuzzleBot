@@ -44,7 +44,10 @@ How to install Telegram for WSA:
 
 4. Press install APK![image](https://github.com/user-attachments/assets/5559da36-5ad9-46c8-9238-8d3708f5974b)
 
-5. Open installed telegram 
+5. Open installed telegram
+
+
+
 The bot detects colored coins using OpenCV and moves them using PyAutoGUI.
 Use EasyOCR to detect game text like "Claim" and "Play" for automated interaction.
 The script runs in a separate thread for efficient operation and allows hotkey-based interaction.
