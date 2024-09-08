@@ -34,6 +34,17 @@ Navigate to the bot’s project folder and run the script:python HexaBot.py
 Use hotkeys like Ctrl+A to start automation and Ctrl+S to stop.
 
 Link for video: https://youtu.be/Ix51kGpS3hI
+
+
+
+How to install Telegram for WSA: 
+1. Download https://www.microsoft.com/store/productId/9N4P75DXL6FG?ocid=pdpshare
+2. Download any telegram APK
+3. Open WSAtools ![image](https://github.com/user-attachments/assets/b29d219a-561a-42c5-a941-eeb3cea396b6)
+
+4. Press install APK![image](https://github.com/user-attachments/assets/5559da36-5ad9-46c8-9238-8d3708f5974b)
+
+5. Open installed telegram 
 The bot detects colored coins using OpenCV and moves them using PyAutoGUI.
 Use EasyOCR to detect game text like "Claim" and "Play" for automated interaction.
 The script runs in a separate thread for efficient operation and allows hotkey-based interaction.
