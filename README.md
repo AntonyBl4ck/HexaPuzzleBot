@@ -33,6 +33,7 @@ Navigate to the bot’s project folder and run the script:python HexaBot.py
 
 Use hotkeys like Ctrl+A to start automation and Ctrl+S to stop.
 
+Link for video: https://youtu.be/Ix51kGpS3hI
 The bot detects colored coins using OpenCV and moves them using PyAutoGUI.
 Use EasyOCR to detect game text like "Claim" and "Play" for automated interaction.
 The script runs in a separate thread for efficient operation and allows hotkey-based interaction.
