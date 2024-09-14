@@ -3,13 +3,12 @@ import numpy as np
 import pyautogui
 import time
 import threading
-import keyboard  # Для обработки горячих клавиш
+import keyboard  
 
 import easyocr
 import time
 import random
 
-# Инициализация EasyOCR
 reader = easyocr.Reader(['en'])
 
 # Function to capture a screenshot
@@ -52,22 +51,23 @@ def find_colored_regions_with_coordinates(image, color_range, min_area=6):
 
 # Function to wait for keypresses to start and stop the clicking process
 def wait_for_keypress():
-    print("Press 'Ctrl + A' to start clicking.")
-    while not key_pressed.is_set():
-        time.sleep(0.1)
-    print("Clicking started. Press 'Ctrl + S' to stop.")
-    start_clicking.set()
-    while not stop_clicking.is_set():
-        time.sleep(0.1)
-    print("Clicking stopped. Press 'Ctrl + A' to start again.")
-
+    try:
+        print("Press 'Ctrl + A' to start clicking.")
+        while not key_pressed.is_set():
+            time.sleep(0.1)
+        print("Clicking started. Press 'Ctrl + S' to stop.")
+        start_clicking.set()
+        while not stop_clicking.is_set():
+            time.sleep(0.1)
+        print("Clicking stopped. Press 'Ctrl + A' to start again.")
+    except Exception as e:
+        print(f"Error in wait_for_keypress: {e}")
 # Function to set up hotkeys
 def setup_hotkeys():
     keyboard.add_hotkey('ctrl+a', lambda: key_pressed.set())
     keyboard.add_hotkey('ctrl+s', lambda: stop_clicking.set())
     keyboard.add_hotkey('ctrl+q', lambda: stop_clicking.set())
 
-# Function to find the nearest available cell for a coin
 def find_nearest_available_cell(coin_coord, available_cells):
     min_distance = float('inf')
     nearest_cell = None
@@ -80,14 +80,11 @@ def find_nearest_available_cell(coin_coord, available_cells):
             
     return nearest_cell
 
-# Function to find the nearest available cell close to the same color coin in the upper region
 def find_nearest_available_cell_for_same_color(lower_coin_coord, same_color_coords, available_cells):
     min_distance = float('inf')
     best_cell = None
 
-    # Iterate over each coin coordinate in the upper region of the same color
     for upper_coin_coord in same_color_coords:
-        # Now, find the closest available cell to this upper coin
         for cell in available_cells:
             distance_to_upper_coin = np.linalg.norm(np.array(upper_coin_coord) - np.array(cell))
             
@@ -97,19 +94,15 @@ def find_nearest_available_cell_for_same_color(lower_coin_coord, same_color_coor
 
     return best_cell
 
-# Function to match and move coins between regions
 def match_and_move_coins(coin_colors_lower, coin_colors_upper, lower_coordinates, upper_coordinates, available_cells):
     for color, lower_coords in lower_coordinates.items():
-        # Check if there are upper region coins of the same color
         if color in upper_coordinates:
             same_color_coords = upper_coordinates[color]
 
             for lower_coord in lower_coords:
-                # Find the nearest available cell close to a same-colored coin in the upper region
                 nearest_cell = find_nearest_available_cell_for_same_color(lower_coord, same_color_coords, available_cells)
 
                 if nearest_cell:
-                    # Calculate the correct coordinates within the capture region
                     start_x = region_x + lower_coord[0]
                     start_y = region_y + lower_coord[1] + (region_h - lower_region_height)
                     end_x = region_x + nearest_cell[0]
@@ -121,7 +114,6 @@ def match_and_move_coins(coin_colors_lower, coin_colors_upper, lower_coordinates
                     pyautogui.mouseUp()
                     print(f"Moved {color} coin from {lower_coord} to nearest available cell {nearest_cell} near a same-colored coin")
 
-                    # Remove the used cell from available cells
                     available_cells.remove(nearest_cell)
                 else:
                     print(f"No suitable available cell found for {color} coin at {lower_coord}")
@@ -129,19 +121,15 @@ def match_and_move_coins(coin_colors_lower, coin_colors_upper, lower_coordinates
             print(f"No upper region coordinates available for {color} to find a match")
             move_random_coin_to_random_cell(lower_coordinates, available_cells)
             
-# Function to randomly move any coin to a random available cell
 def move_random_coin_to_random_cell(lower_coordinates, available_cells):
     if not lower_coordinates or not available_cells:
         return
-
-    # Выбираем случайный цвет и соответствующие координаты
+    
     random_color = random.choice(list(lower_coordinates.keys()))
     random_coin_coord = random.choice(lower_coordinates[random_color])
 
-    # Выбираем случайное свободное место
     random_available_cell = random.choice(available_cells)
 
-    # Перемещаем монету
     start_x = region_x + random_coin_coord[0]
     start_y = region_y + random_coin_coord[1] + (region_h - lower_region_height)
     end_x = region_x + random_available_cell[0]
@@ -153,10 +141,8 @@ def move_random_coin_to_random_cell(lower_coordinates, available_cells):
 
     print(f"Moved random {random_color} coin from {random_coin_coord} to random available cell {random_available_cell}")
 
-    # Удаляем использованную клетку из списка доступных
     available_cells.remove(random_available_cell)
 
-# Define color ranges in HSV (Hue, Saturation, Value)
 color_ranges = {
     "red": ((0, 100, 100), (10, 255, 255)),
     "orange": ((10, 100, 100), (25, 255, 255)),
@@ -167,7 +153,6 @@ color_ranges = {
     "field": ((0, 0, 224), (180, 20, 245))
 }
 
-# Define display colors
 display_colors = {
     "red": (0, 0, 255),
     "orange": (0, 165, 255),
@@ -178,125 +163,146 @@ display_colors = {
     "field": (64, 64, 64)
 }
 
-# Display function
 def display_in_window(fps=60):
-    delay = 1 / fps
-    screen_res = (1920, 1080)
-    global region_x, region_y, region_w, region_h, lower_region_height
-    region_x = 3 * screen_res[0] // 4
-    region_y = 0
-    region_w = screen_res[0] // 4
-    region_h = screen_res[1] - 100
-    region = (region_x, region_y, region_w, region_h)
+    try:
+        delay = 1 / fps
+        screen_res = (1920, 1080)
+        global region_x, region_y, region_w, region_h, lower_region_height
+        region_x = 3 * screen_res[0] // 4
+        region_y = 0
+        region_w = screen_res[0] // 4
+        region_h = screen_res[1] - 100
+        region = (region_x, region_y, region_w, region_h)
 
-    cv2.namedWindow("Screen Capture", cv2.WINDOW_NORMAL)
-    
-    min_area_lower = 2000
-    min_area_upper = 1500
-    min_area_field = 500
-    
-    while True:
-        start_time = time.time()
-        img_np = capture_screen(region)
+        cv2.namedWindow("Screen Capture", cv2.WINDOW_NORMAL)
         
-        # Split the image into upper and lower parts
-        lower_region_height = int(region_h * 0.2)
-        lower_region = img_np[-lower_region_height:]
-        upper_region = img_np[:-lower_region_height]
+        min_area_lower = 2000
+        min_area_upper = 1500
+        min_area_field = 500
         
-        # Calculate the height of the ignore zone
-        ignore_zone_height = int(region_h * 0.3)
-        analyzable_region_height = region_h - ignore_zone_height
-        analyzable_region = upper_region[:analyzable_region_height]
+        while True:
+            start_time = time.time()
+            img_np = capture_screen(region)
+ 
+            lower_region_height = int(region_h * 0.2)
+            lower_region = img_np[-lower_region_height:]
+            upper_region = img_np[:-lower_region_height]
+            
+            ignore_zone_height = int(region_h * 0.3)
+            analyzable_region_height = region_h - ignore_zone_height
+            analyzable_region = upper_region[:analyzable_region_height]
 
-        # Analyze lower region for colored coins with minimum area of 2000 pixels
-        coin_colors_lower = {}
-        lower_contours_dict = {}
-        lower_coordinates = {}
-        for color_name, color_range in color_ranges.items():
-            if color_name != "field":
-                contours, coordinates = find_colored_regions_with_coordinates(lower_region, color_range, min_area=min_area_lower)
-                if contours:
-                    lower_contours_dict[color_name] = contours
-                    coin_colors_lower[color_name] = len(contours)
-                    lower_coordinates[color_name] = coordinates
-                    draw_colored_regions(lower_region, contours, display_colors[color_name])
-                    # Print the coordinates of detected coins
-                    print(f"Lower region - {color_name.capitalize()}: {coordinates}")
-        
-        # Analyze the analyzable part of the upper region for colored coins with minimum area of 1500 pixels
-        coin_colors_upper = {}
-        upper_coordinates = {}
-        for color_name, color_range in color_ranges.items():
-            if color_name != "field":
-                contours, coordinates = find_colored_regions_with_coordinates(analyzable_region, color_range, min_area=min_area_upper)
-                if contours:
-                    coin_colors_upper[color_name] = len(contours)
-                    upper_coordinates[color_name] = coordinates
-                    draw_colored_regions(analyzable_region, contours, display_colors[color_name])
-                    # Print the coordinates of detected coins
-                    print(f"Upper region - {color_name.capitalize()}: {coordinates}")
-        
-        # Analyze upper region for empty cells
-        field_contours, field_coordinates = find_colored_regions_with_coordinates(analyzable_region, color_ranges["field"], min_area=min_area_field)
-        available_cells = field_coordinates
-        
-        # Display results in console
-        if coin_colors_lower:
-            print("Coins in the lower region with minimum area of 2000 pixels:")
-            for color_name, count in coin_colors_lower.items():
-                print(f"{color_name.capitalize()} (Display color: {display_colors[color_name]}): {count} found")
-        else:
-            print("No coins found in the lower region with the minimum area of 2000 pixels.")
-        
-        if coin_colors_upper:
-            print("Coins in the upper region with minimum area of 1500 pixels (excluding the top 30%):")
-            for color_name, count in coin_colors_upper.items():
-                print(f"{color_name.capitalize()} (Display color: {display_colors[color_name]}): {count} found")
-        else:
-            print("No coins found in the upper region with the minimum area of 1500 pixels (excluding the top 30%).")
-        
-        # Print available cells information and their coordinates
-        print(f"Available cells in the analyzable part of the upper region (with minimum area of 500 pixels): {len(available_cells)}")
-        if available_cells:
-            print("Coordinates of available cells:")
-            for coord in available_cells:
-                print(f"Cell at: {coord}")
-        else:
-            print("No available cells found in the upper region.")
-            if not find_and_click_claim(region):
-                print("Claim button not found. Moving to random free slot.")
-        
-        # Draw detected regions on the full image
-        for color_name, color_range in color_ranges.items():
-            contours = find_colored_regions(img_np, color_range, min_area=6)
-            draw_colored_regions(img_np, contours, display_colors[color_name])
+            coin_colors_lower = {}
+            lower_contours_dict = {}
+            lower_coordinates = {}
+            for color_name, color_range in color_ranges.items():
+                if color_name != "field":
+                    contours, coordinates = find_colored_regions_with_coordinates(lower_region, color_range, min_area=min_area_lower)
+                    if contours:
+                        lower_contours_dict[color_name] = contours
+                        coin_colors_lower[color_name] = len(contours)
+                        lower_coordinates[color_name] = coordinates
+                        draw_colored_regions(lower_region, contours, display_colors[color_name])
+                        print(f"Lower region - {color_name.capitalize()}: {coordinates}")
+            
+            # Analyze the analyzable part of the upper region for colored coins with minimum area of 1500 pixels
+            coin_colors_upper = {}
+            upper_coordinates = {}
+            for color_name, color_range in color_ranges.items():
+                if color_name != "field":
+                    contours, coordinates = find_colored_regions_with_coordinates(analyzable_region, color_range, min_area=min_area_upper)
+                    if contours:
+                        coin_colors_upper[color_name] = len(contours)
+                        upper_coordinates[color_name] = coordinates
+                        draw_colored_regions(analyzable_region, contours, display_colors[color_name])
+                        # Print the coordinates of detected coins
+                        print(f"Upper region - {color_name.capitalize()}: {coordinates}")
+            
+            # Analyze upper region for empty cells
+            field_contours, field_coordinates = find_colored_regions_with_coordinates(analyzable_region, color_ranges["field"], min_area=min_area_field)
+            available_cells = field_coordinates
+            
+            # Display results in console
+            if coin_colors_lower:
+                print("Coins in the lower region with minimum area of 2000 pixels:")
+                for color_name, count in coin_colors_lower.items():
+                    print(f"{color_name.capitalize()} (Display color: {display_colors[color_name]}): {count} found")
+            else:
+                print("No coins found in the lower region with the minimum area of 2000 pixels.")
+            
+            if coin_colors_upper:
+                print("Coins in the upper region with minimum area of 1500 pixels (excluding the top 30%):")
+                for color_name, count in coin_colors_upper.items():
+                    print(f"{color_name.capitalize()} (Display color: {display_colors[color_name]}): {count} found")
+            else:
+                print("No coins found in the upper region with the minimum area of 1500 pixels (excluding the top 30%).")
+            
+            # Print available cells information and their coordinates
+            print(f"Available cells in the analyzable part of the upper region (with minimum area of 500 pixels): {len(available_cells)}")
+            if available_cells:
+                print("Coordinates of available cells:")
+                for coord in available_cells:
+                    print(f"Cell at: {coord}")
+            else:
+                print("No available cells found in the upper region.")
+                if not find_and_click_claim(region):
+                    print("Claim button not found. Moving to random free slot.")
+            
+            # Draw detected regions on the full image
+            for color_name, color_range in color_ranges.items():
+                contours = find_colored_regions(img_np, color_range, min_area=6)
+                draw_colored_regions(img_np, contours, display_colors[color_name])
 
-        # Match and move coins if the start_clicking event is set
-        if start_clicking.is_set() and not stop_clicking.is_set():
-            match_and_move_coins(coin_colors_lower, coin_colors_upper, lower_coordinates, upper_coordinates, available_cells)
+            if start_clicking.is_set() and not stop_clicking.is_set():
+                match_and_move_coins(coin_colors_lower, coin_colors_upper, lower_coordinates, upper_coordinates, available_cells)
 
-        cv2.imshow("Screen Capture", img_np)
+            cv2.imshow("Screen Capture", img_np)
+            
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+            
+            elapsed_time = time.time() - start_time
+            time_to_wait = max(delay - elapsed_time, 0)
+            time.sleep(time_to_wait)
         
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-        
-        elapsed_time = time.time() - start_time
-        time_to_wait = max(delay - elapsed_time, 0)
-        time.sleep(time_to_wait)
-    
-    cv2.destroyAllWindows()
-
+        cv2.destroyAllWindows()
+    except Exception as e:
+        print(f"Error in display_in_window: {e}")
 def convert_to_screen_coordinates(center, region):
     region_x, region_y, region_w, region_h = region
     x, y = center
     return region_x + x, region_y + y
 
-def find_and_click_text(region, text_to_find):
+def find_and_click_text(region, text_to_find, ignore_position_check=False):
     img_np = capture_screen(region)
     img_rgb = cv2.cvtColor(img_np, cv2.COLOR_BGR2RGB)
 
-    # Распознаем текст на экране
+    results = reader.readtext(img_rgb)
+
+    screen_height = pyautogui.size().height 
+    for result in results:
+        text = result[1]
+        if text_to_find.lower() in text.lower():
+            x1, y1 = int(result[0][0][0]), int(result[0][0][1])
+            x2, y2 = int(result[0][2][0]), int(result[0][2][1])
+            x = (x1 + x2) // 2
+            y = (y1 + y2) // 2
+
+            fx, fy = convert_to_screen_coordinates((x, y), region)
+
+            if ignore_position_check or fy > screen_height // 2:
+                print(f"Found '{text_to_find}' button at ({fx}, {fy}), clicking.")
+                pyautogui.moveTo(fx, fy, duration=0.3)
+                pyautogui.mouseDown()
+                pyautogui.mouseUp()
+                return (fx, fy) 
+
+    return False   
+
+def find_and_click_text2(region, text_to_find):
+    img_np = capture_screen(region)
+    img_rgb = cv2.cvtColor(img_np, cv2.COLOR_BGR2RGB)
+
     results = reader.readtext(img_rgb)
 
     for result in results:
@@ -307,7 +313,6 @@ def find_and_click_text(region, text_to_find):
             x = (x1 + x2) // 2
             y = (y1 + y2) // 2
 
-            # Вычисляем координаты центра надписи
             fx, fy = convert_to_screen_coordinates((x, y), region)
             print(f"Found '{text_to_find}' button at ({fx}, {fy}), clicking.")
             pyautogui.moveTo(fx, fy, duration=0.3)
@@ -316,41 +321,40 @@ def find_and_click_text(region, text_to_find):
             return True
 
     return False
+
 def find_and_click_claim(region):
-    if find_and_click_text(region, "Claim"):
-        # Делаем запрос после нажатия кнопки "Claim"
+    screen_height = pyautogui.size().height  
+
+    claim_pos = find_and_click_text(region, "Claim")
+    if claim_pos and claim_pos[1] > screen_height // 2:
         time.sleep(1)
-        
-        # Цикл поиска и нажатия на "Hexa Puzzle"
+
         while True:
-            if find_and_click_text(region, "Hexa Puzzle"):
+            if find_and_click_text2(region, "Hexa Puzzle"):
                 print("Found and clicked 'Hexa Puzzle'.")
                 break
-            time.sleep(1)  # Подождем немного перед следующей попыткой
+            time.sleep(1) 
         
         time.sleep(1)
-        
-        # Цикл поиска и нажатия на "Play"
+
         while True:
-            if find_and_click_text(region, "Play"):
+            play_pos = find_and_click_text(region, "Play")
+            if play_pos and play_pos[1] > screen_height // 2:
                 print("Found and clicked 'Play'.")
                 break
-            time.sleep(1)  # Подождем немного перед следующей попыткой
-        
+            time.sleep(1)
+
         return True
-    
+
     return False
-# Initialize threading events
+
 key_pressed = threading.Event()
 start_clicking = threading.Event()
 stop_clicking = threading.Event()
 
-# Set up hotkeys
 setup_hotkeys()
 
-# Run the display function in a thread
 display_thread = threading.Thread(target=display_in_window)
 display_thread.start()
 
-# Run the keypress function in the main thread
 wait_for_keypress()
