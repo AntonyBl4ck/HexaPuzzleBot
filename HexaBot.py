@@ -15,16 +15,14 @@ reader = easyocr.Reader(['en'])
 def capture_screen(region=None):
     img = pyautogui.screenshot(region=region)
     img_np = np.array(img)
-    img_np = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
-    return img_np
+    return cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
 
 # Function to find colored regions in an image
 def find_colored_regions(image, color_range, min_area=6):
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv_image, color_range[0], color_range[1])
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    filtered_contours = [cnt for cnt in contours if cv2.contourArea(cnt) >= min_area]
-    return filtered_contours
+    return [cnt for cnt in contours if cv2.contourArea(cnt) >= min_area]
 
 # Function to draw colored regions on an image
 def draw_colored_regions(image, contours, color):
@@ -37,31 +35,22 @@ def find_colored_regions_with_coordinates(image, color_range, min_area=6):
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
     filtered_contours = [cnt for cnt in contours if cv2.contourArea(cnt) >= min_area]
-    
-    # Extracting coordinates
-    coordinates = []
-    for cnt in filtered_contours:
-        M = cv2.moments(cnt)
-        if M["m00"] != 0:
-            cx = int(M["m10"] / M["m00"])
-            cy = int(M["m01"] / M["m00"])
-            coordinates.append((cx, cy))
+    coordinates = [(int(cv2.moments(cnt)["m10"] / cv2.moments(cnt)["m00"]),
+                    int(cv2.moments(cnt)["m01"] / cv2.moments(cnt)["m00"]))
+                   for cnt in filtered_contours if cv2.moments(cnt)["m00"] != 0]
     
     return filtered_contours, coordinates
 
 # Function to wait for keypresses to start and stop the clicking process
 def wait_for_keypress():
-    try:
-        print("Press 'Ctrl + A' to start clicking.")
-        while not key_pressed.is_set():
-            time.sleep(0.1)
-        print("Clicking started. Press 'Ctrl + S' to stop.")
-        start_clicking.set()
-        while not stop_clicking.is_set():
-            time.sleep(0.1)
-        print("Clicking stopped. Press 'Ctrl + A' to start again.")
-    except Exception as e:
-        print(f"Error in wait_for_keypress: {e}")
+    print("Press 'Ctrl + A' to start clicking.")
+    while not key_pressed.is_set():
+        time.sleep(0.1)
+    print("Clicking started. Press 'Ctrl + S' to stop.")
+    start_clicking.set()
+    while not stop_clicking.is_set():
+        time.sleep(0.1)
+    print("Clicking stopped. Press 'Ctrl + A' to start again.")
 # Function to set up hotkeys
 def setup_hotkeys():
     keyboard.add_hotkey('ctrl+a', lambda: key_pressed.set())
@@ -69,16 +58,7 @@ def setup_hotkeys():
     keyboard.add_hotkey('ctrl+q', lambda: stop_clicking.set())
 
 def find_nearest_available_cell(coin_coord, available_cells):
-    min_distance = float('inf')
-    nearest_cell = None
-    
-    for cell in available_cells:
-        distance = np.linalg.norm(np.array(coin_coord) - np.array(cell))
-        if distance < min_distance:
-            min_distance = distance
-            nearest_cell = cell
-            
-    return nearest_cell
+    return min(available_cells, key=lambda cell: np.linalg.norm(np.array(coin_coord) - np.array(cell)), default=None)
 
 def find_nearest_available_cell_for_same_color(lower_coin_coord, same_color_coords, available_cells):
     min_distance = float('inf')
@@ -94,53 +74,40 @@ def find_nearest_available_cell_for_same_color(lower_coin_coord, same_color_coor
 
     return best_cell
 
-def match_and_move_coins(coin_colors_lower, coin_colors_upper, lower_coordinates, upper_coordinates, available_cells):
+def match_and_move_coins(lower_coordinates, upper_coordinates, available_cells):
     for color, lower_coords in lower_coordinates.items():
-        if color in upper_coordinates:
-            same_color_coords = upper_coordinates[color]
+        same_color_coords = upper_coordinates.get(color, [])
+        for lower_coord in lower_coords:
+            nearest_cell = find_nearest_available_cell_for_same_color(lower_coord, same_color_coords, available_cells)
+            if nearest_cell:
+                move_coin(lower_coord, nearest_cell)
+                available_cells.remove(nearest_cell)
+            else:
+                print(f"No suitable available cell found for {color} coin at {lower_coord}")
+                move_random_coin_to_random_cell(lower_coordinates, available_cells)
 
-            for lower_coord in lower_coords:
-                nearest_cell = find_nearest_available_cell_for_same_color(lower_coord, same_color_coords, available_cells)
+def move_coin(start_coord, end_coord):
+    start_x = region_x + start_coord[0]
+    start_y = region_y + start_coord[1] + (region_h - lower_region_height)
+    end_x = region_x + end_coord[0]
+    end_y = region_y + end_coord[1]
 
-                if nearest_cell:
-                    start_x = region_x + lower_coord[0]
-                    start_y = region_y + lower_coord[1] + (region_h - lower_region_height)
-                    end_x = region_x + nearest_cell[0]
-                    end_y = region_y + nearest_cell[1]
-
-                    pyautogui.mouseDown(start_x, start_y)
-                    pyautogui.moveTo(end_x, end_y + 50, duration=0.7)
-                    pyautogui.mouseDown()
-                    pyautogui.mouseUp()
-                    print(f"Moved {color} coin from {lower_coord} to nearest available cell {nearest_cell} near a same-colored coin")
-
-                    available_cells.remove(nearest_cell)
-                else:
-                    print(f"No suitable available cell found for {color} coin at {lower_coord}")
-        else:
-            print(f"No upper region coordinates available for {color} to find a match")
-            move_random_coin_to_random_cell(lower_coordinates, available_cells)
-            
-def move_random_coin_to_random_cell(lower_coordinates, available_cells):
-    if not lower_coordinates or not available_cells:
-        return
-    
-    random_color = random.choice(list(lower_coordinates.keys()))
-    random_coin_coord = random.choice(lower_coordinates[random_color])
-
-    random_available_cell = random.choice(available_cells)
-
-    start_x = region_x + random_coin_coord[0]
-    start_y = region_y + random_coin_coord[1] + (region_h - lower_region_height)
-    end_x = region_x + random_available_cell[0]
-    end_y = region_y + random_available_cell[1]
-
+    pyautogui.moveTo(start_x, start_y)
+    time.sleep(0.1)
     pyautogui.mouseDown(start_x, start_y)
     pyautogui.moveTo(end_x, end_y + 50, duration=0.7)
     pyautogui.mouseUp()
 
-    print(f"Moved random {random_color} coin from {random_coin_coord} to random available cell {random_available_cell}")
+    print(f"Moved coin from {start_coord} to {end_coord}")            
+def move_random_coin_to_random_cell(lower_coordinates, available_cells):
+    if not lower_coordinates or not available_cells:
+        return
 
+    random_color = random.choice(list(lower_coordinates.keys()))
+    random_coin_coord = random.choice(lower_coordinates[random_color])
+    random_available_cell = random.choice(available_cells)
+
+    move_coin(random_coin_coord, random_available_cell)
     available_cells.remove(random_available_cell)
 
 color_ranges = {
@@ -254,16 +221,13 @@ def display_in_window(fps=60):
                 draw_colored_regions(img_np, contours, display_colors[color_name])
 
             if start_clicking.is_set() and not stop_clicking.is_set():
-                match_and_move_coins(coin_colors_lower, coin_colors_upper, lower_coordinates, upper_coordinates, available_cells)
+                match_and_move_coins(lower_coordinates, upper_coordinates, available_cells)
 
             cv2.imshow("Screen Capture", img_np)
-            
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
-            
-            elapsed_time = time.time() - start_time
-            time_to_wait = max(delay - elapsed_time, 0)
-            time.sleep(time_to_wait)
+
+            time.sleep(max(0, delay - (time.time() - start_time)))
         
         cv2.destroyAllWindows()
     except Exception as e:
@@ -323,30 +287,44 @@ def find_and_click_text2(region, text_to_find):
     return False
 
 def find_and_click_claim(region):
-    screen_height = pyautogui.size().height  
+    try:
+        screen_height = pyautogui.size().height  
 
-    claim_pos = find_and_click_text(region, "Claim")
-    if claim_pos and claim_pos[1] > screen_height // 2:
-        time.sleep(1)
-
-        while True:
-            if find_and_click_text2(region, "Hexa Puzzle"):
-                print("Found and clicked 'Hexa Puzzle'.")
-                break
-            time.sleep(1) 
-        
-        time.sleep(1)
-
-        while True:
-            play_pos = find_and_click_text(region, "Play")
-            if play_pos and play_pos[1] > screen_height // 2:
-                print("Found and clicked 'Play'.")
-                break
+        claim_pos = find_and_click_text(region, "Claim")
+        if claim_pos and claim_pos[1] > screen_height // 2:
             time.sleep(1)
 
-        return True
+            # Attempt to find and click "Hexa Puzzle"
+            while True:
+                try:
+                    if find_and_click_text2(region, "Hexa Puzzle"):
+                        print("Found and clicked 'Hexa Puzzle'.")
+                        break
+                except Exception as e:
+                    print(f"Error while clicking 'Hexa Puzzle': {e}")
+                time.sleep(1)
 
-    return False
+            time.sleep(1)
+
+            # Attempt to find and click "Play"
+            while True:
+                try:
+                    play_pos = find_and_click_text(region, "Play")
+                    if play_pos and play_pos[1] > screen_height // 2:
+                        print("Found and clicked 'Play'.")
+                        break
+                except Exception as e:
+                    print(f"Error while clicking 'Play': {e}")
+                time.sleep(1)
+
+            return True
+
+        return False
+    
+    except Exception as e:
+        print(f"Error in find_and_click_claim: {e}")
+        return False
+
 
 key_pressed = threading.Event()
 start_clicking = threading.Event()
