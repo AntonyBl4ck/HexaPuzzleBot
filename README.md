@@ -33,7 +33,7 @@ Navigate to the bot’s project folder and run the script:python HexaBot.py
 
 Use hotkeys like Ctrl+A to start automation and Ctrl+S to stop.
 
-Link for video: https://youtu.be/Ix51kGpS3hI
+Link for video: [https://youtu.be/Ix51kGpS3hI](https://www.youtube.com/watch?v=rPAWnWsD5Bs)
 
 
 
